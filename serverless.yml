@@ -1,0 +1,64 @@
+service:
+  name: desafio
+
+plugins: 
+  - serverless-offline
+  - serverless-esbuild
+  - serverless-dynamodb-local
+
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    target: node14
+    exclude: aws-sdk
+    platform: node
+    concurrency: 10
+    define:
+      require.resolve: 'undefined'
+  dynamodb:
+    stages:
+      - dev
+      - local
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: sa-east-1
+
+functions:
+  create:
+    handler: src/functions/create.handle
+    events:
+      - http:
+          path: /create/{userid}
+          method: POST
+          cors: true
+  get:
+    handler: src/functions/get.handle
+    events:
+      - http:
+          path: /get/{userid}
+          method: GET
+          cors: true
+
+resources:
+  Resources:
+    dbCertificateUsers:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: table_create
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
